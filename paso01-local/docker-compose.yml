@@ -1,0 +1,34 @@
+# ==================================================================
+# Paso 01 — AWS "de laboratorio" corriendo en tu computador.
+#
+# Un solo servicio: LocalStack. Todo lo demás (API Gateway, Lambda
+# Java, SQS, DynamoDB, SNS, CloudWatch) vive DENTRO de LocalStack:
+# LocalStack levanta un contenedor Docker por cada invocación de
+# Lambda (por eso monta el socket de Docker).
+# ==================================================================
+services:
+
+  localstack:
+    image: localstack/localstack:4.5.0
+    container_name: localstack
+    ports:
+      - "4566:4566"        # puerta única de TODOS los servicios AWS
+    environment:
+      DEBUG: "1"
+      # Red compartida: los contenedores de Lambda deben poder
+      # resolver "localstack" para llegar a SQS/DynamoDB/SNS.
+      # (el código Java usa AWS_ENDPOINT_URL=http://localstack:4566)
+      LAMBDA_DOCKER_NETWORK: "requisiciones-net"
+      # Borra cada contenedor de Lambda cuando termina la ejecución
+      LAMBDA_REMOVE_CONTAINERS: "true"
+    volumes:
+      # LocalStack necesita el socket de Docker para lanzar las
+      # Lambdas como contenedores Java reales
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - requisiciones-net
+
+networks:
+  requisiciones-net:
+    name: requisiciones-net
+    driver: bridge

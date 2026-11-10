@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Lámina — Declarar antes de construir</title>
+<!-- Foto: https://commons.wikimedia.org/wiki/File:Code_on_computer_monitor_(Unsplash).jpg (Wikimedia Commons) -->
+<style>
+  html, body { margin:0; padding:0; background:#ffffff; }
+  p { margin:0; }
+  .slide {
+    position: relative; width:2048px; height:1166px;
+    background:#ffffff; overflow:hidden;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .rect-azul {
+    position:absolute; left:0; top:50px; width:170px; height:87px;
+    background:#367EDB;
+  }
+  .titulo {
+    position:absolute; left:240px; top:32px; width:640px;
+    font-size:68px; font-weight:bold; color:#000000;
+    line-height:1.12; text-align:left;
+  }
+  .intro {
+    position:absolute; left:60px; top:300px; width:770px;
+    font-size:46px; font-weight:normal; color:#333333;
+    line-height:1.18; text-align:left;
+  }
+  .vinetas {
+    position:absolute; left:60px; top:490px; width:770px;
+  }
+  .vineta { margin-bottom:36px; }
+  .vineta .vt {
+    font-size:44px; font-weight:bold; color:#000000; line-height:1.15;
+  }
+  .vineta .vt::before {
+    content:"●"; font-size:26px; margin-right:21px;
+  }
+  .vineta .vd {
+    margin-top:10px; margin-left:47px;
+    font-size:44px; font-weight:normal; color:#333333; line-height:1.22;
+  }
+  .imagen {
+    position:absolute; left:901px; top:0; width:1147px; height:1166px;
+  }
+  .imagen img { width:100%; height:100%; object-fit:cover; display:block; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="rect-azul"></div>
+  <h1 class="titulo">Declarar antes<br>de construir</h1>
+  <p class="intro">Antes de diseñar o programar, el comportamiento se declara en Gherkin, a lo Cucumber.</p>
+  <div class="vinetas">
+    <div class="vineta">
+      <p class="vt">Contrato de aceptación:</p>
+      <p class="vd">cada escenario se rastrea a un requisito del negocio.</p>
+    </div>
+    <div class="vineta">
+      <p class="vt">Dos archivos feature:</p>
+      <p class="vd">recepción (202/400) y procesamiento (correo, cola y DLQ).</p>
+    </div>
+    <div class="vineta">
+      <p class="vt">Hoy es real:</p>
+      <p class="vd">las reglas ya tienen pruebas JUnit; sigue el runner Cucumber.</p>
+    </div>
+  </div>
+  <div class="imagen"><img src="lamina-03-foto.jpg" alt=""></div>
+</div>
+</body>
+</html>

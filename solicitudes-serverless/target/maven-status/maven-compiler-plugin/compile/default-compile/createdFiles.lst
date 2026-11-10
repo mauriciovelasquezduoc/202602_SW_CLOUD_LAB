@@ -1,0 +1,10 @@
+duoc/cloud/solicitudes/ProcesadorSolicitudes$1.class
+duoc/cloud/solicitudes/validacion/ValidadorSolicitud.class
+duoc/cloud/solicitudes/model/SolicitudRequest.class
+duoc/cloud/solicitudes/model/Solicitud.class
+duoc/cloud/solicitudes/ProcesamientoHandler.class
+duoc/cloud/solicitudes/model/EstadoSolicitud.class
+duoc/cloud/solicitudes/ProcesadorSolicitudes.class
+duoc/cloud/solicitudes/model/TipoSolicitud.class
+duoc/cloud/solicitudes/model/Alumno.class
+duoc/cloud/solicitudes/RecepcionHandler.class

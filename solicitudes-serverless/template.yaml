@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sistema de Gestion de Solicitudes Estudiantiles.
+  Arquitectura serverless con procesamiento asincrono:
+  API Gateway -> Lambda Recepcion -> SQS -> Lambda Procesamiento -> DynamoDB + SNS.
+
+Parameters:
+  EmailNotificaciones:
+    Type: String
+    AllowedPattern: "^\\S+@\\S+\\.\\S+$"
+    Description: Correo donde llegaran las notificaciones SNS (deberas confirmar la suscripcion despues de desplegar).
+
+Globals:
+  Function:
+    Runtime: java21
+    Architectures: [x86_64]
+    MemorySize: 512
+    Timeout: 25
+    # ----------------------------------------------------------------
+    # AWS Academy Learner Lab: el lab NO permite crear roles ni policies IAM.
+    # Todas las funciones usan el rol pre-existente LabRole.
+    # En un entorno real: quitar esta línea y usar Policies por función
+    # con minimo privilegio (ver documento-diseno.md, sección 9).
+    # ----------------------------------------------------------------
+    Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+
+Resources:
+
+  # ------------------------------------------------------------------
+  # Persistencia: tabla de solicitudes procesadas
+  # ------------------------------------------------------------------
+  TablaSolicitudes:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-solicitudes"
+      AttributeDefinitions:
+        - AttributeName: solicitudId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: solicitudId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # ------------------------------------------------------------------
+  # Mensajeria: cola de pendientes + DLQ
+  # ------------------------------------------------------------------
+  ColaSolicitudesDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-solicitudes-dlq"
+
+  ColaSolicitudes:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-solicitudes-pendientes"
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ColaSolicitudesDlq.Arn
+        maxReceiveCount: 3
+
+  # ------------------------------------------------------------------
+  # Notificaciones: topico SNS con suscripcion por email
+  # ------------------------------------------------------------------
+  TopicoNotificaciones:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-notificaciones"
+      Subscription:
+        - Endpoint: !Ref EmailNotificaciones
+          Protocol: email
+
+  # ------------------------------------------------------------------
+  # API REST: expone POST /solicitudes
+  # ------------------------------------------------------------------
+  ApiSolicitudes:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      StageName: prod
+
+  # ------------------------------------------------------------------
+  # Lambda de RECEPCION: valida, encola y responde 202
+  # ------------------------------------------------------------------
+  FuncionRecepcion:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-recepcion"
+      Handler: duoc.cloud.solicitudes.RecepcionHandler::handleRequest
+      CodeUri: .
+      Environment:
+        Variables:
+          COLA_SOLICITUDES_URL: !Ref ColaSolicitudes
+      Events:
+        PostSolicitudes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiSolicitudes
+            Path: /solicitudes
+            Method: post
+
+  # ------------------------------------------------------------------
+  # Lambda de PROCESAMIENTO: consume SQS, guarda en DynamoDB y notifica
+  # ------------------------------------------------------------------
+  FuncionProcesamiento:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-procesamiento"
+      Handler: duoc.cloud.solicitudes.ProcesamientoHandler::handleRequest
+      CodeUri: .
+      Environment:
+        Variables:
+          TABLA_SOLICITUDES: !Ref TablaSolicitudes
+          TOPICO_NOTIFICACIONES: !Ref TopicoNotificaciones
+      Events:
+        ConsumirCola:
+          Type: Sqs
+          Properties:
+            Queue: !GetAtt ColaSolicitudes.Arn
+            BatchSize: 5
+
+Outputs:
+  ApiUrl:
+    Description: URL para probar POST /solicitudes (usar en Postman)
+    Value: !Sub "https://${ApiSolicitudes}.execute-api.${AWS::Region}.amazonaws.com/prod/solicitudes"
+
+  NombreTablaDynamoDB:
+    Description: Tabla DynamoDB donde quedan las solicitudes procesadas
+    Value: !Ref TablaSolicitudes
+
+  UrlColaDlq:
+    Description: Cola de mensajes fallidos (deberia permanecer vacia)
+    Value: !Ref ColaSolicitudesDlq
+
+  ArnTopicoSNS:
+    Description: Topico SNS de notificaciones
+    Value: !Ref TopicoNotificaciones

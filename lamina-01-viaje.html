@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Lámina — Del requerimiento a la nube</title>
+<!-- Foto: https://commons.wikimedia.org/wiki/File:Developers_and_%22interested_in%22_wall_at_the_Amsterdam_Hackathon_2013.jpg (Wikimedia Commons) -->
+<style>
+  html, body { margin:0; padding:0; background:#ffffff; }
+  p { margin:0; }
+  .slide {
+    position: relative; width:2048px; height:1166px;
+    background:#ffffff; overflow:hidden;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .rect-azul {
+    position:absolute; left:0; top:50px; width:170px; height:87px;
+    background:#367EDB;
+  }
+  .titulo {
+    position:absolute; left:240px; top:32px; width:640px;
+    font-size:68px; font-weight:bold; color:#000000;
+    line-height:1.12; text-align:left;
+  }
+  .intro {
+    position:absolute; left:60px; top:300px; width:770px;
+    font-size:46px; font-weight:normal; color:#333333;
+    line-height:1.18; text-align:left;
+  }
+  .vinetas {
+    position:absolute; left:60px; top:490px; width:770px;
+  }
+  .vineta { margin-bottom:36px; }
+  .vineta .vt {
+    font-size:44px; font-weight:bold; color:#000000; line-height:1.15;
+  }
+  .vineta .vt::before {
+    content:"●"; font-size:26px; margin-right:21px;
+  }
+  .vineta .vd {
+    margin-top:10px; margin-left:47px;
+    font-size:44px; font-weight:normal; color:#333333; line-height:1.22;
+  }
+  .imagen {
+    position:absolute; left:901px; top:0; width:1147px; height:1166px;
+  }
+  .imagen img { width:100%; height:100%; object-fit:cover; display:block; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="rect-azul"></div>
+  <h1 class="titulo">Del requerimiento<br>a la nube</h1>
+  <p class="intro">El sistema se construyó como un viaje de ocho pasos, cada uno con un entregable verificable.</p>
+  <div class="vinetas">
+    <div class="vineta">
+      <p class="vt">Declarar primero:</p>
+      <p class="vd">Gherkin y diagramas C4 antes de escribir código.</p>
+    </div>
+    <div class="vineta">
+      <p class="vt">Implementar en Java:</p>
+      <p class="vd">Lambdas por evento y por reloj, desplegadas con AWS SAM.</p>
+    </div>
+    <div class="vineta">
+      <p class="vt">Comparar y decidir:</p>
+      <p class="vd">paralelo con microservicios y comparación de costos.</p>
+    </div>
+  </div>
+  <div class="imagen"><img src="lamina-01-foto.jpg" alt=""></div>
+</div>
+</body>
+</html>
