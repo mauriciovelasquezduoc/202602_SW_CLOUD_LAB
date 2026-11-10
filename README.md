@@ -859,7 +859,8 @@ salida/
 ├── README-paso-paso.md        El viaje en formato paso a paso (versión anterior)
 ├── paso01-local/              PASO A: el sistema completo en tu computador (Docker)
 │   ├── docker-compose.yml     LocalStack emula API GW, Lambda, SQS, DynamoDB, SNS, CloudWatch
-│   ├── Makefile               make up · make demo · make avisos · make estado
+│   ├── scripts/               build/init-aws/demo/estado/avisos/limpiar (.ps1 y .bat para Windows)
+│   ├── bin/                   los mismos 6 pasos para macOS/Linux (bash)
 │   └── java/                  El mismo código Java del paso B (detecta el ambiente con AWS_ENDPOINT_URL)
 └── solicitudes-serverless/    PASO B: el sistema real en AWS
     ├── template.yaml          TODA la infraestructura en un archivo (SAM)

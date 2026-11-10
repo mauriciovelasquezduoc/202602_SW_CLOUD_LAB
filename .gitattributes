@@ -1,0 +1,8 @@
+# Protege los .sh de los finales de linea CRLF: bash dentro del
+# contenedor falla con $'\r': command not found si el checkout de
+# Windows los convierte a CRLF.
+*.sh text eol=lf
+
+# Convencion Windows para scripts de PowerShell y batch
+*.ps1 text eol=crlf
+*.bat text eol=crlf

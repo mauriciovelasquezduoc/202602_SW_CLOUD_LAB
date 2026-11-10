@@ -1,4 +1,4 @@
-# PASO 01 · Guía: correr TODO el sistema local en Docker (Windows, sin `make`)
+# PASO 01 · Guía: correr TODO el sistema local en Docker (Windows, macOS y Linux — sin `make`)
 
 El mismo sistema de solicitudes que luego desplegarás en AWS real (paso 02), pero 100% en tu computador:
 
@@ -29,7 +29,7 @@ curl / Postman  │                                                    │
                 │   "solicitudes"          ├► email (igual que en la nube)
                 │                          └► bandeja simulada (cola)  │
                 │                              → se lee con el script │
-                │                                avisos.sh            │
+                │                                avisos (ps1/bat/sh)  │
                 │   CloudWatch: logs de cada ejecución               │
                 └────────────────────────────────────────────────────┘
 ```
@@ -42,7 +42,7 @@ curl / Postman  │                                                    │
 | AWS Lambda (Java 21) | Contenedores Docker reales con el runtime `java21` de Lambda |
 | Amazon SQS (+ DLQ) | SQS de LocalStack |
 | Amazon DynamoDB | DynamoDB de LocalStack |
-| Amazon SNS (correo) | SNS de LocalStack → suscripción email (igual que en la nube) **+ una "bandeja" local simulada**: una cola SQS suscrita al tópico donde se leen las notificaciones (`avisos.sh` dentro del contenedor), porque en local no hay SMTP que entregue correos |
+| Amazon SNS (correo) | SNS de LocalStack → suscripción email (igual que en la nube) **+ una "bandeja" local simulada**: una cola SQS suscrita al tópico donde se leen las notificaciones (`avisos` en cualquiera de las 3 variantes: `bin/avisos.sh` en mac/linux, `scripts\avisos.ps1` o `scripts\avisos.bat` en Windows), porque en local no hay SMTP que entregue correos |
 | Amazon CloudWatch | CloudWatch de LocalStack (logs de cada Lambda) |
 | IAM | No se evalúa permisos en local (usamos credenciales de prueba `test/test`) |
 
@@ -57,56 +57,66 @@ curl / Postman  │                                                    │
 
 ## Prerrequisitos (solo uno)
 
-- **Docker Desktop para Windows** corriendo (usa el backend WSL2 por defecto; no necesitas
-  instalar Java, Maven ni AWS CLI: todo corre en contenedores).
+- **Docker** corriendo: **Docker Desktop** (Windows o macOS) o **Docker Engine** (Linux;
+  si tu usuario no está en el grupo `docker`, antepón `sudo` a los comandos `docker`).
+  No necesitas instalar Java, Maven ni AWS CLI: todo corre en contenedores.
 
-Todos los comandos de esta guía son para **PowerShell** (el que abre Docker Desktop
-recomendado). También funcionan en CMD, salvo los bucles de espera y el manejo de variables
-(`$url`, `$api`), que son de PowerShell.
+La guía muestra los comandos en **PowerShell** y en **CMD**; cada paso indica también su
+equivalente para **macOS/Linux** (`./bin/*.sh`). Los comandos `docker` y `docker compose`
+son idénticos en las tres terminales; solo cambia el wrapper de cada operación.
 
 ## Cómo usar la guía
 
-Abre PowerShell y ubícate en la carpeta del paso 01:
+Abre PowerShell, CMD o tu terminal (macOS/Linux) y ubícate en la carpeta del paso 01:
 
 ```powershell
-cd "...\salida\paso01-local"    # ajusta a tu ruta real
+cd "...\salida\paso01-local"    # ajusta a tu ruta real (mac/linux: cd ~/ruta/paso01-local)
 docker version                  # confirma que Docker está corriendo
 ```
 
-### Chuleta: cada operación y su comando de Docker
+La guía muestra los comandos en PowerShell; si usas **CMD**, cada paso indica su
+equivalente `scripts\*.bat`, y si usas **macOS/Linux**, su equivalente `./bin/*.sh`
+(los `.sh` de `bin/` vienen con permiso de ejecución; si un checkout los pierde:
+`chmod +x bin/*.sh`, o ejecútalos con `bash bin/demo.sh`).
 
-| Qué quieres hacer | Comando(s) |
-|---|---|
-| Compilar el Java + pruebas → `out/lambdas.zip` | `docker build` + `docker create` + `docker cp` (Paso 1) |
-| Levantar el "AWS local" | `docker compose up -d` (Paso 2) |
-| Crear la infraestructura | `docker cp` + `docker exec -e EMAIL_NOTIFICATIONS=... localstack bash /tmp/init-aws.sh` (Paso 3) |
-| Prueba de punta a punta | `docker cp` + `docker exec localstack bash /tmp/demo.sh` (Paso 4) |
-| Estado del sistema | `docker exec localstack bash /tmp/estado.sh` |
-| Ver "el correo" (notificaciones) | `docker exec localstack bash /tmp/avisos.sh` |
-| Logs de una Lambda | `docker exec localstack awslocal logs tail ...` |
-| URL de la API (para Postman) | `$api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)` |
-| Apagar y borrar todo | `docker compose down -v` |
+### Chuleta: cada operación y su comando
+
+Todos los pasos existen en tres sabores paralelos: **`.ps1`** (PowerShell), **`.bat`** (CMD)
+y **`.sh`** (macOS/Linux, en `bin/`). Elige según tu terminal; los tres hacen exactamente lo mismo.
+
+| Qué quieres hacer | PowerShell | CMD | macOS / Linux |
+|---|---|---|---|
+| Compilar el Java + pruebas → `out/lambdas.zip` | `.\scripts\build.ps1` | `scripts\build.bat` | `./bin/build.sh` |
+| Levantar el "AWS local" | `docker compose up -d` | `docker compose up -d` | `docker compose up -d` |
+| Crear la infraestructura | `.\scripts\init-aws.ps1 -Email tucorreo@duocuc.cl` | `scripts\init-aws.bat tucorreo@duocuc.cl` | `./bin/init-aws.sh tucorreo@duocuc.cl` |
+| Prueba de punta a punta | `.\scripts\demo.ps1` | `scripts\demo.bat` | `./bin/demo.sh` |
+| Estado del sistema | `.\scripts\estado.ps1` | `scripts\estado.bat` | `./bin/estado.sh` |
+| Ver "el correo" (notificaciones) | `.\scripts\avisos.ps1` | `scripts\avisos.bat` | `./bin/avisos.sh` |
+| Logs de una Lambda | `docker exec localstack awslocal logs tail ...` | igual | igual |
+| URL de la API (para Postman) | `$api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)` | `docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text` | `docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text` |
+| Apagar y borrar todo | `.\scripts\limpiar.ps1` | `scripts\limpiar.bat` | `./bin/limpiar.sh` |
+
+> **¿PowerShell bloquea los scripts?** Si sale *"running scripts is disabled"*: ejecuta una vez
+> `Set-ExecutionPolicy -Scope Process Bypass` en esa ventana de PowerShell y reintenta.
+> **CMD no tiene esa restricción**: los `.bat` corren sin configurar nada.
 
 ### Paso 1 — Compilar el código Java (en Docker, con pruebas incluidas)
 
 ```powershell
-New-Item -ItemType Directory -Force out | Out-Null
-docker build -t solicitudes-builder -f Dockerfile.builder .
-docker create --name builder-tmp solicitudes-builder
-docker cp builder-tmp:/out/lambdas.zip out/lambdas.zip
-docker rm builder-tmp
+.\scripts\build.ps1
 ```
 
-Qué hace: construye una imagen `maven:3.9-eclipse-temurin-21`, compila el proyecto,
-**corre las pruebas unitarias** del validador (`mvn package` activa Surefire) y deja
-`out/lambdas.zip` (el fat-jar que consumirán las dos Lambdas). Es el equivalente a
-`mvn package` + `sam build`, pero sin instalar nada en tu computador. El `docker create`
-crea un contenedor detenido solo para copiar el zip con `docker cp` (en Windows no se
-puede hacer *pipe* binario de `docker run` hacia `tar` como en Mac/Linux).
+En CMD: `scripts\build.bat` · En macOS/Linux: `./bin/build.sh`
+
+Qué hace por dentro (puedes verlo en `scripts\build.ps1`): construye una imagen
+`maven:3.9-eclipse-temurin-21`, compila el proyecto, **corre las pruebas unitarias** del
+validador (`mvn package` activa Surefire) y deja `out/lambdas.zip` (el fat-jar que consumirán
+las dos Lambdas). Es el equivalente a `mvn package` + `sam build`, pero sin instalar nada en
+tu computador. El `docker create` crea un contenedor detenido solo para copiar el zip con
+`docker cp` (en Windows no se puede hacer *pipe* binario de `docker run` hacia `tar` como en
+Mac/Linux).
 
 Tiempo: ~1-2 min la primera vez (descarga dependencias).
-
-> Si `docker create` dice que `builder-tmp` ya existe: `docker rm -f builder-tmp` y repite.
 
 ### Paso 2 — Levantar el "AWS local"
 
@@ -127,17 +137,24 @@ do {
 Write-Host "LocalStack listo en http://localhost:4566"
 ```
 
+En macOS/Linux:
+
+```bash
+until curl -sf http://localhost:4566/_localstack/health > /dev/null; do sleep 3; done
+echo "LocalStack listo en http://localhost:4566"
+```
+
 (Alternativa sin bucle: `docker compose logs -f localstack` y espera el mensaje *Ready*;
 sal con `Ctrl+C`.)
 
 ### Paso 3 — Crear la infraestructura
 
 ```powershell
-docker cp out/lambdas.zip localstack:/tmp/lambdas.zip
-docker cp scripts/init-aws.sh localstack:/tmp/init-aws.sh
-docker exec -e EMAIL_NOTIFICATIONS=tucorreo@duocuc.cl localstack bash /tmp/init-aws.sh
+.\scripts\init-aws.ps1 -Email tucorreo@duocuc.cl
 # opcional: cambia tucorreo@duocuc.cl por tu correo institucional
 ```
+
+En CMD: `scripts\init-aws.bat tucorreo@duocuc.cl` · En macOS/Linux: `./bin/init-aws.sh tucorreo@duocuc.cl`
 
 Este paso crea **en orden**, igual que haría en la nube:
 
@@ -162,9 +179,10 @@ de las Lambdas con el `out/lambdas.zip` del build más reciente).
 ### Paso 4 — Probar de punta a punta
 
 ```powershell
-docker cp scripts/demo.sh localstack:/tmp/demo.sh
-docker exec localstack bash /tmp/demo.sh
+.\scripts\demo.ps1
 ```
+
+En CMD: `scripts\demo.bat` · En macOS/Linux: `./bin/demo.sh`
 
 Envía un `POST /solicitudes` válido y **verás la clave del patrón asíncrono**:
 
@@ -207,17 +225,17 @@ curl.exe -i -X POST $url -H "Content-Type: application/json" -d "@ejemplo-invali
 
 ```powershell
 # Estado general: tabla + colas + suscripciones SNS
-docker cp scripts/estado.sh localstack:/tmp/estado.sh
-docker exec localstack bash /tmp/estado.sh
+.\scripts\estado.ps1
 
 # Las notificaciones ("el correo")
-docker cp scripts/avisos.sh localstack:/tmp/avisos.sh
-docker exec localstack bash /tmp/avisos.sh
+.\scripts\avisos.ps1
 
 # Logs CloudWatch de cada Lambda
 docker exec localstack awslocal logs tail /aws/lambda/recepcion --since 15m --format short
 docker exec localstack awslocal logs tail /aws/lambda/procesamiento --since 15m --format short
 ```
+
+En CMD: `scripts\estado.bat` y `scripts\avisos.bat` · En macOS/Linux: `./bin/estado.sh` y `./bin/avisos.sh` (los logs con `docker exec` son iguales).
 
 Qué verificar (misma tabla de verificación que en la nube):
 
@@ -256,9 +274,28 @@ Qué verificar (misma tabla de verificación que en la nube):
    # ... y repite los Pasos 3 y 4
    ```
 
-3. **Picos de tráfico.** Envía 10 POST seguidos (repite el `curl.exe` del Paso 4 en un
-   bucle `1..10`): todos responden `202` al instante aunque el procesamiento Java tarde.
-   La cola amortigua el pico.
+3. **Picos de tráfico.** Envía 10 POST seguidos con el cuerpo válido: todos responden `202`
+   al instante aunque el procesamiento Java tarde. La cola amortigua el pico.
+
+   ```powershell
+   # $url es la del Paso 4 (la crea .\scripts\init-aws.ps1 al final, o defínela:
+   $api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
+   $url = "http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
+
+   1..10 | ForEach-Object {
+     curl.exe -s -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json" | Out-Null
+     "solicitud $_ -> 202 Accepted"
+   }
+   ```
+
+   En macOS/Linux:
+
+   ```bash
+   for i in $(seq 1 10); do
+     curl -s -X POST "$url" -H "Content-Type: application/json" -d @ejemplo-valido.json > /dev/null
+     echo "solicitud $i -> 202 Accepted"
+   done
+   ```
 
 ## Estructura del proyecto
 
@@ -266,34 +303,49 @@ Qué verificar (misma tabla de verificación que en la nube):
 paso01-local/
 ├── docker-compose.yml      LocalStack (todo AWS local en un contenedor)
 ├── Dockerfile.builder      Maven 21 en Docker: compila y corre pruebas
-├── README.md               esta guía (comandos directos de Docker, sin make)
+├── README.md               esta guía (PowerShell nativo, sin make)
+├── ejemplo-valido.json     cuerpo válido para POST manuales (curl.exe o Postman)
 ├── ejemplo-invalido.json   cuerpo de la prueba negativa (400)
 ├── java/                   copia del código fuente (no se modifica el original)
 ├── scripts/
-│   ├── init-aws.sh         crea TODA la infraestructura (se ejecuta DENTRO del contenedor)
-│   ├── demo.sh             POST de punta a punta + verificación en DynamoDB (idem)
-│   ├── estado.sh           estado de tabla, colas, DLQ y suscripciones (idem)
-│   └── avisos.sh           lee la bandeja simulada de notificaciones SNS (idem)
+│   ├── build.ps1           PASO 1: compila el Java en Docker → out/lambdas.zip
+│   ├── init-aws.ps1        PASO 3: crea toda la infraestructura (-Email tucorreo)
+│   ├── demo.ps1            PASO 4: prueba de punta a punta (POST + verificación)
+│   ├── estado.ps1          PASO 5: estado de tabla, colas, DLQ y suscripciones
+│   ├── avisos.ps1          PASO 5: lee la bandeja simulada de notificaciones
+│   ├── limpiar.ps1         limpieza: borra contenedores, apaga y borra el estado
+│   ├── build.bat           los MISMOS seis pasos en versión CMD (sin PowerShell)
+│   ├── init-aws.bat
+│   ├── demo.bat
+│   ├── estado.bat
+│   ├── avisos.bat
+│   ├── limpiar.bat
+│   └── *.sh                la lógica que ejecutan los .ps1/.bat (DENTRO del contenedor)
+├── bin/
+│   ├── build.sh            los MISMOS seis pasos para macOS/Linux (bash)
+│   ├── init-aws.sh
+│   ├── demo.sh
+│   ├── estado.sh
+│   ├── avisos.sh
+│   └── limpiar.sh
 └── out/                    (generado) lambdas.zip listo para desplegar
 ```
 
-> **Nota:** los `.sh` se ejecutan dentro del contenedor LocalStack (Linux), no en tu
-> Windows. Por eso se copian con `docker cp` y corren con `docker exec ... bash`.
-> No los edites con Bloc de notas: si los guardas con finales de línea CRLF, bash
-> falla. Usa VS Code con `LF` si necesitas tocarlos.
+> **Nota:** tú solo usas los wrappers de tu sistema: `.ps1` (PowerShell) o `.bat` (CMD) en
+> Windows, `bin/*.sh` en macOS/Linux. Los `.sh` de `scripts/` son la lógica que esos wrappers
+> copian y ejecutan DENTRO del contenedor LocalStack (Linux), donde `awslocal` y `bash` sí
+> existen. No los edites con Bloc de notas: si quedan con finales de línea CRLF, bash falla.
+> El archivo `.gitattributes` del repo fuerza `LF` para los `.sh` en cualquier checkout;
+> usa VS Code con `LF` si necesitas tocarlos a mano.
 
 ## Limpieza
 
 ```powershell
-# Contenedores huérfanos de Lambda (a veces quedan tras una invocación)
-docker ps -aq --filter "name=localstack-lambda" | ForEach-Object { docker rm -f $_ }
-
-# Apaga LocalStack y borra TODO el estado (colas, tabla, logs)
-docker compose down -v
-
-# Borra además el zip compilado
-Remove-Item -Recurse -Force out
+.\scripts\limpiar.ps1             # huerfanos de Lambda + docker compose down -v
+Remove-Item -Recurse -Force out   # (opcional) borra también el zip compilado
 ```
+
+En CMD: `scripts\limpiar.bat` y `rmdir /s /q out` (opcional) · En macOS/Linux: `./bin/limpiar.sh` y `rm -rf out` (opcional).
 
 La próxima sesión: repite el Paso 1 (si borraste `out/`) + Paso 2 + Paso 3.
 
