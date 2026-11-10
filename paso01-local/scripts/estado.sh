@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # ==================================================================
 # Paso 01 — estado del sistema dentro de LocalStack.
-# Se ejecuta con: docker exec -i localstack bash < scripts/estado.sh
+# Corre DENTRO del contenedor. Desde PowerShell (Windows):
+#   docker cp scripts/estado.sh localstack:/tmp/estado.sh
+#   docker exec localstack bash /tmp/estado.sh
 # ==================================================================
 NOMBRE_TABLA=solicitudes
 
 echo "=== DynamoDB: solicitudes registradas ==="
 awslocal dynamodb scan --table-name "$NOMBRE_TABLA" \
   --query 'Items[].{id:solicitudId.S, tipo:tipo.S, estado:estado.S, alumno:nombreAlumno.S, resultado:resultado.S}' \
-  --output table 2>/dev/null || echo "(tabla sin datos; envia una solicitud con make demo)"
+  --output table 2>/dev/null || echo "(tabla sin datos; envia una solicitud con demo.sh)"
 
 echo
 echo "=== SQS: mensajes pendientes y DLQ ==="
@@ -34,4 +36,4 @@ awslocal sqs receive-message \
   --queue-url "http://localhost:4566/000000000000/notificaciones-bandeja" \
   --max-number-of-messages 5 \
   --query 'length(Messages)? 0 : length(Messages)' --output text 2>/dev/null || true
-echo "(usa 'make avisos' para leer las notificaciones en detalle)"
+echo "(lee las notificaciones con: docker exec localstack bash /tmp/avisos.sh)"

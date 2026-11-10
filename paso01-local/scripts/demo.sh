@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # ==================================================================
-# Paso 01 — prueba de punta a punta desde tu Mac.
+# Paso 01 — prueba de punta a punta.
+#
+# Este script corre DENTRO del contenedor LocalStack (no en tu
+# computador). Desde PowerShell (Windows) lo ejecutas así:
+#   docker cp scripts/demo.sh localstack:/tmp/demo.sh
+#   docker exec localstack bash /tmp/demo.sh
 #
 # 1. POST /solicitudes contra el API Gateway que vive en LocalStack.
 # 2. Espera a que la Lambda de procesamiento concluya (cold start de
@@ -9,9 +14,9 @@
 # ==================================================================
 set -e
 
-API_ID=$(docker exec localstack awslocal apigateway get-rest-apis --query 'items[0].id' --output text 2>/dev/null || true)
+API_ID=$(awslocal apigateway get-rest-apis --query 'items[0].id' --output text 2>/dev/null || true)
 if [ -z "$API_ID" ] || [ "$API_ID" = "None" ]; then
-  echo "No hay API todavía. Primero corre: make init"
+  echo "No hay API todavía. Primero crea la infraestructura (Paso 3 del README)."
   exit 1
 fi
 
@@ -31,7 +36,7 @@ echo
 
 echo ">> Esperando el procesamiento asíncrono (hasta 3 min por el cold start de Java) ..."
 for i in $(seq 1 45); do
-  COUNT=$(docker exec localstack awslocal dynamodb scan \
+  COUNT=$(awslocal dynamodb scan \
     --table-name solicitudes \
     --filter-expression '#e = :p' \
     --expression-attribute-names '{"#e":"estado"}' \
@@ -40,10 +45,10 @@ for i in $(seq 1 45); do
   if [ "$COUNT" -ge 1 ] 2>/dev/null; then
     echo
     echo ">> Solicitud PROCESADA y notificada. Contenido de la tabla DynamoDB:"
-    docker exec localstack awslocal dynamodb scan --table-name solicitudes \
+    awslocal dynamodb scan --table-name solicitudes \
       --query 'Items[].{id:solicitudId.S, tipo:tipo.S, estado:estado.S, alumno:nombreAlumno.S, email:emailAlumno.S, resultado:resultado.S, procesada:fechaProcesamiento.S}' \
       --output table
-    echo ">> El 'correo' de SNS:  make avisos"
+    echo ">> El 'correo' de SNS:  docker exec localstack bash /tmp/avisos.sh"
     exit 0
   fi
   printf "."
@@ -52,4 +57,5 @@ done
 
 echo
 echo ">> Sigue pendiente. Es normal la PRIMERA vez (imagen de Java se descarga)."
-echo ">> Reintenta en 1 minuto:  make demo     |  Logs: make logs-procesamiento"
+echo ">> Reintenta en 1 minuto:  docker exec localstack bash /tmp/demo.sh"
+echo ">> Logs: docker exec localstack awslocal logs tail /aws/lambda/procesamiento --since 15m --format short"

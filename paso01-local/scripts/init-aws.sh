@@ -2,8 +2,11 @@
 # ==================================================================
 # Paso 01 — crea TODA la arquitectura dentro del contenedor LocalStack.
 #
-# Este script NO corre en tu Mac: el Makefile lo envía al contenedor:
-#   docker exec -i -e EMAIL_NOTIFICATIONS=... localstack bash < scripts/init-aws.sh
+# Este script NO corre en tu computador (Mac o Windows): lo ejecutas
+# DENTRO del contenedor LocalStack:
+#   docker cp out/lambdas.zip localstack:/tmp/lambdas.zip
+#   docker cp scripts/init-aws.sh localstack:/tmp/init-aws.sh
+#   docker exec -e EMAIL_NOTIFICATIONS=... localstack bash /tmp/init-aws.sh
 #
 # Es IDEMPOTENTE: si algo ya existe lo reutiliza; si el zip cambió,
 # actualiza el código de las Lambdas. Total compatibilidad conceptual
@@ -44,8 +47,9 @@ if API_ID_PREVIO=$(awslocal apigateway get-rest-apis --query 'items[0].id' --out
            --notification-endpoint "arn:aws:sqs:${REGION}:${CUENTA}:notificaciones-bandeja" \
            --region "$REGION" > /dev/null || true
   fi
-  echo ">> Usa 'make demo' directamente, o re-crea todo desde cero con:"
-  echo ">>   make down && make up && make init"
+  echo ">> Prueba directamente:  docker exec localstack bash /tmp/demo.sh"
+  echo ">> O re-crea todo desde cero: docker compose down -v && docker compose up -d"
+  echo ">>   y repite este paso (Paso 3 del README)."
   exit 0
 fi
 
@@ -79,7 +83,7 @@ awslocal sns subscribe \
   --notification-endpoint "${EMAIL_NOTIFICATIONS:-alumno@duocuc.cl}" \
   --region "$REGION" > /dev/null || true
 # (b) "bandeja" local: una cola SQS suscrita al tópico emula el buzón.
-#     En la nube el alumno recibe el email; en el paso 01 se lee con 'make avisos'.
+#     En la nube el alumno recibe el email; en el paso 01 se lee con 'avisos.sh'.
 awslocal sqs create-queue --queue-name notificaciones-bandeja --region "$REGION" > /dev/null
 awslocal sns subscribe \
   --topic-arn "$TOPICO_ARN" \
@@ -87,7 +91,7 @@ awslocal sns subscribe \
   --notification-endpoint "arn:aws:sqs:${REGION}:${CUENTA}:notificaciones-bandeja" \
   --region "$REGION" > /dev/null || true || true
 
-echo "== 4. Lambdas Java 21 (el zip está en /tmp, copiado por el Makefile) =="
+echo "== 4. Lambdas Java 21 (el zip está en /tmp, copiado con docker cp) =="
 FIN_RECEPTION=$(awslocal lambda create-function \
   --function-name recepcion \
   --zip-file fileb:///tmp/lambdas.zip \
@@ -156,7 +160,7 @@ awslocal apigateway create-deployment --rest-api-id "$API_ID" --stage-name prod 
 echo
 echo "============================================================"
 echo " Infraestructura local lista. Registra una solicitud con:"
-echo "   make demo"
+echo "   docker exec localstack bash /tmp/demo.sh"
 echo " URL de la API:"
 echo "   http://localhost:4566/restapis/${API_ID}/prod/_user_request_/solicitudes"
 echo "============================================================"

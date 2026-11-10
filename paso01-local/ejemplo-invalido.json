@@ -1,0 +1,5 @@
+{
+  "alumno": { "nombre": "Ana", "email": "no-valido" },
+  "tipo": "PRESTAMO_LIBROS",
+  "descripcion": "corta"
+}

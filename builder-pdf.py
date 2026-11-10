@@ -1,77 +1,73 @@
 #!/usr/bin/env python3
-"""Pipeline README.md -> PDF: pandoc (md->html) + mermaid SVG remoto + Chrome headless."""
-import base64
-import json
+"""Pipeline v4: pandoc -> HTML; mermaid renderizado con Chrome --dump-dom;
+SVG extraidos e inlineados; impresion final sin JS."""
+import html as htmlmod
 import pathlib
 import re
 import subprocess
-import sys
-import urllib.request
 
-SRC = pathlib.Path("README.md")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
-src = SRC.read_text(encoding="utf-8")
-diagrams = list(re.finditer(r"^```mermaid\n(.*?)^```", src, re.S | re.M))
-print(f"{len(diagrams)} diagramas mermaid detectados")
-
-
-def fetch_svg(code: str) -> bytes:
-    """Intenta kroki.io (POST simple) y cae a mermaid.ink (GET base64url)."""
-    try:
-        req = urllib.request.Request(
-            "https://kroki.io/mermaid/svg",
-            data=code.encode("utf-8"),
-            headers={"Content-Type": "text/plain"},
-        )
-        with urllib.request.urlopen(req, timeout=40) as r:
-            data = r.read()
-            if b"<svg" in data:
-                return data
-    except Exception as e:
-        print(f"  kroki fallo ({e}); probando mermaid.ink")
-    state = base64.urlsafe_b64encode(
-        json.dumps({"code": code, "mermaid": {"theme": "default"}}).encode()
-    ).decode().rstrip("=")
-    with urllib.request.urlopen(f"https://mermaid.ink/svg/{state}", timeout=40) as r:
-        return r.read()
-
-
-# Sustituir cada fence por un marcador de párrafo simple
-parts, last = [], 0
-for j, m in enumerate(diagrams, 1):
-    svg = fetch_svg(m.group(1))
-    name = f"mermaid-{j:02d}.svg"
-    pathlib.Path(name).write_bytes(svg)
-    print(f"  diagrama {j}: {name} ({len(svg)} bytes)")
-    parts.append(src[last : m.start()])
-    parts.append(f"\nDIAGRAMMARKER{j}\n")
-    last = m.end()
-parts.append(src[last:])
-pathlib.Path("tmp-doc.md").write_text("".join(parts), encoding="utf-8")
-
-# pandoc: markdown -> fragmento html
-html = subprocess.run(
-    ["pandoc", "-f", "gfm", "-t", "html5", "--wrap=none", "tmp-doc.md"],
+frag = subprocess.run(
+    ["pandoc", "-f", "gfm", "-t", "html5", "--wrap=none", "tmp-src.md"],
     capture_output=True, check=True,
 ).stdout.decode("utf-8")
 
-# Marcadores -> <div class="diagram"><img .../></div>
-for j in range(1, len(diagrams) + 1):
-    html = re.sub(
-        rf"<p>\s*DIAGRAMMARKER{j}\s*</p>",
-        f'<div class="diagram"><img src="mermaid-{j:02d}.svg" alt="Diagrama {j}"></div>',
-        html,
-    )
+pattern = re.compile(
+    r'<pre[^>]*class="[^"]*mermaid[^"]*"[^>]*>\s*<code[^>]*>(.*?)</code>\s*</pre>'
+    r'|<pre><code class="language-mermaid">(.*?)</code></pre>', re.S)
+count = 0
 
+
+def repl(m):
+    global count
+    count += 1
+    inner = m.group(1) if m.group(1) is not None else m.group(2)
+    return f'<pre class="mermaid">\n{htmlmod.unescape(inner)}\n</pre>'
+
+
+frag = pattern.sub(repl, frag)
+print(f"{count} bloques mermaid en el documento")
+
+# --- Pasada 1: renderizar mermaid con Chrome y volcar el DOM ---
+RENDER_CSS = "body{margin:20px;background:#fff} pre.mermaid{text-align:center}"
+render_doc = (
+    "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+    f"<style>{RENDER_CSS}</style></head><body>{frag}"
+    "<script src='mermaid.min.js'></script>"
+    "<script>mermaid.initialize({ startOnLoad: true, theme: 'default',"
+    " flowchart: { htmlLabels: true }, sequence: { actorMargin: 40 } });</script>"
+    "</body></html>"
+)
+pathlib.Path("tmp-render.html").write_text(render_doc, encoding="utf-8")
+uri = pathlib.Path("tmp-render.html").resolve().as_uri()
+dom = subprocess.run(
+    [CHROME, "--headless=new", "--disable-gpu", "--virtual-time-budget=15000",
+     "--dump-dom", uri],
+    capture_output=True, check=True,
+).stdout.decode("utf-8")
+
+svgs = re.findall(r"<svg[\s\S]*?</svg>", dom)
+print(f"{len(svgs)} SVG extraidos del DOM renderizado")
+
+# --- Sustituir los <pre class="mermaid"> por los SVG inline ---
+parts, last = [], 0
+for i, m in enumerate(re.finditer(r'<pre class="mermaid">[\s\S]*?</pre>', frag)):
+    parts.append(frag[last:m.start()])
+    parts.append(f'<div class="diagram">{svgs[i]}</div>')
+    last = m.end()
+parts.append(frag[last:])
+frag_svg = "".join(parts)
+
+# --- Pasada 2: imprimir sin JS ---
 CSS = """
 @page { size: Letter; margin: 1in; }
 * { box-sizing: border-box; }
 body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10.5pt;
        line-height: 1.5; color: #111; }
-h1 { page-break-before: always; font-size: 20pt; color: #0f2f52;
+h1 { page-break-before: always; break-before: page; font-size: 20pt; color: #0f2f52;
      border-bottom: 2.5pt solid #367EDB; padding-bottom: 6pt; margin: 0 0 18pt; }
-h1:first-of-type { page-break-before: avoid; }
+h1:first-of-type { page-break-before: avoid; break-before: auto; }
 h2 { font-size: 14pt; color: #1a1a1a; margin: 20pt 0 8pt; }
 h3 { font-size: 12pt; margin: 16pt 0 6pt; }
 p { margin: 0 0 8pt; }
@@ -84,20 +80,20 @@ pre { background: #f6f7f9; border: 0.5pt solid #d5d9e0; border-radius: 3pt;
       page-break-inside: avoid; white-space: pre-wrap; }
 code { font-family: Menlo, Monaco, monospace; font-size: 8.5pt; }
 p code, li code, td code { background: #f0f2f5; padding: 0 3pt; border-radius: 2pt; }
+.diagram { text-align: center; margin: 14pt 0; page-break-inside: avoid; }
+.diagram svg { max-width: 100%; max-height: 8in; width: auto; height: auto; }
 blockquote { border-left: 3pt solid #367EDB; margin: 10pt 0; padding: 2pt 0 2pt 12pt;
              color: #333; background: #f7fafd; }
 ul, ol { margin: 0 0 10pt; padding-left: 18pt; }
 li { margin-bottom: 4pt; }
-.diagram { text-align: center; margin: 14pt 0; page-break-inside: avoid; }
-.diagram img { max-width: 100%; max-height: 8.2in; width: auto; height: auto; }
 hr { border: none; border-top: 0.5pt solid #ccc; margin: 14pt 0; }
 """
 
-full = (
+final = (
     "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>"
-    f"<style>{CSS}</style></head><body>{html}</body></html>"
+    f"<style>{CSS}</style></head><body>{frag_svg}</body></html>"
 )
-pathlib.Path("tmp-doc.html").write_text(full, encoding="utf-8")
+pathlib.Path("tmp-doc.html").write_text(final, encoding="utf-8")
 
 uri = pathlib.Path("tmp-doc.html").resolve().as_uri()
 subprocess.run(

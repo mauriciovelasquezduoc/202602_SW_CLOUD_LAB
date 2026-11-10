@@ -1,8 +1,11 @@
 # ==================================================================
 # Paso 01 — compilar el proyecto Java DENTRO de Docker.
 #
-# No necesitas JDK ni Maven instalado en tu computador:
-#   make build
+# No necesitas JDK ni Maven instalado en tu computador (Windows):
+#   docker build -t solicitudes-builder -f Dockerfile.builder .
+#   docker create --name builder-tmp solicitudes-builder
+#   docker cp builder-tmp:/out/lambdas.zip out/lambdas.zip
+#   docker rm builder-tmp
 # genera out/lambdas.zip (el fat-jar listo para ambas funciones).
 # ==================================================================
 
@@ -27,5 +30,4 @@ RUN mkdir -p /out/lib \
     && rm -rf lib \
     && mv /tmp/lambdas.zip /out/lambdas.zip
 
-# make build extrae este contenido hacia out/ (sin volúmenes)
-CMD ["tar", "-C", "/out", "-cf", "-", "."]
+# El build copia este /out/lambdas.zip al host con docker cp (ver README).
