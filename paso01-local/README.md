@@ -92,7 +92,7 @@ y **`.sh`** (macOS/Linux, en `bin/`). Elige según tu terminal; los tres hacen e
 | Prueba de punta a punta | `.\scripts\demo.ps1` | `scripts\demo.bat` | `./bin/demo.sh` |
 | Estado del sistema | `.\scripts\estado.ps1` | `scripts\estado.bat` | `./bin/estado.sh` |
 | Ver "el correo" (notificaciones) | `.\scripts\avisos.ps1` | `scripts\avisos.bat` | `./bin/avisos.sh` |
-| Logs de una Lambda | `docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/recepcion --query 'events[].message' --output text` | igual | igual |
+| Logs de una Lambda | `.\scripts\logs.ps1 recepcion` | `scripts\logs.bat recepcion` | `./bin/logs.sh recepcion` |
 | URL de la API (para Postman) | `$api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)` | `docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text` | `docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text` |
 | Apagar y borrar todo | `.\scripts\limpiar.ps1` | `scripts\limpiar.bat` | `./bin/limpiar.sh` |
 
@@ -230,11 +230,15 @@ curl.exe -i -X POST $url -H "Content-Type: application/json" -d "@ejemplo-invali
 # Las notificaciones ("el correo")
 .\scripts\avisos.ps1
 
-# Logs CloudWatch de cada Lambda.
-# OJO: awslocal usa el motor del CLI v1 y NO soporta "logs tail" (eso es azúcar
-# del CLI v2): se usa la API real filter-log-events.
-docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/recepcion --query 'events[].message' --output text
-docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/procesamiento --query 'events[].message' --output text
+# Logs CloudWatch de cada Lambda ("recepcion" o "procesamiento";
+# sin argumento muestra las dos)
+.\scripts\logs.ps1 recepcion
+.\scripts\logs.ps1 procesamiento
+
+# Por dentro, el wrapper ejecuta la API real (awslocal no soporta
+# "logs tail" del CLI v2):
+#   docker exec localstack awslocal logs filter-log-events \
+#     --log-group-name /aws/lambda/recepcion --query 'events[].message' --output text
 ```
 
 En CMD: `scripts\estado.bat` y `scripts\avisos.bat` · En macOS/Linux: `./bin/estado.sh` y `./bin/avisos.sh` (los logs con `docker exec` son iguales).
@@ -315,6 +319,7 @@ paso01-local/
 │   ├── demo.ps1            PASO 4: prueba de punta a punta (POST + verificación)
 │   ├── estado.ps1          PASO 5: estado de tabla, colas, DLQ y suscripciones
 │   ├── avisos.ps1          PASO 5: lee la bandeja simulada de notificaciones
+│   ├── logs.ps1            PASO 5: logs CloudWatch de una Lambda (o las dos)
 │   ├── limpiar.ps1         limpieza: borra contenedores, apaga y borra el estado
 │   ├── build.bat           los MISMOS seis pasos en versión CMD (sin PowerShell)
 │   ├── init-aws.bat
@@ -327,8 +332,9 @@ paso01-local/
 │   ├── build.sh            los MISMOS seis pasos para macOS/Linux (bash)
 │   ├── init-aws.sh
 │   ├── demo.sh
-│   ├── estado.sh
+│   ├── estado.sh           los MISMOS siete pasos para macOS/Linux (bash)
 │   ├── avisos.sh
+│   ├── logs.sh
 │   └── limpiar.sh
 └── out/                    (generado) lambdas.zip listo para desplegar
 ```
