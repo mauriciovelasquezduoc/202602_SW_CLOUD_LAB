@@ -355,25 +355,35 @@ docker exec localstack awslocal logs filter-log-events \
 ### 6.1 Picos de tráfico: la cola amortigua
 
 Envía 10 POST seguidos: todos responden `202` **al instante** aunque el procesamiento Java
-tarde. Esa es la gracia: la recepción no sufre lo que sufre el procesamiento.
+tarde. Esa es la gracia: la recepción no sufre lo que sufre el procesamiento. Cada bloque
+resuelve primero la URL (el id de la API se consulta con `docker exec`) y muestra el **código
+HTTP real** de cada envío — si algo fallara, verías el código, no una promesa.
 
 ```powershell
-# PowerShell (con $url del Paso 4)
+# PowerShell
+$api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
+$url = "http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
+
 1..10 | ForEach-Object {
-  curl.exe -s -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json" | Out-Null
-  "solicitud $_ -> 202 Accepted"
+  $code = curl.exe -s -o NUL -w "%{http_code}" -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json"
+  "solicitud $_ -> HTTP $code"
 }
 ```
 
 ```bash
 # macOS / Linux
+api=$(docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
+url="http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
+
 for i in $(seq 1 10); do
-  curl -s -X POST "$url" -H "Content-Type: application/json" -d @ejemplo-valido.json > /dev/null
-  echo "solicitud $i -> 202 Accepted"
+  code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$url" -H "Content-Type: application/json" -d @ejemplo-valido.json)
+  echo "solicitud $i -> HTTP $code"
 done
 ```
 
-Luego corre `estado`: verás los mensajes acumándose en `pendientes` y drenándose a 0.
+**Qué se espera:** diez líneas `solicitud i -> HTTP 202`. Si saliera `HTTP 000`, curl no
+llegó al endpoint (revisa la URL o que LocalStack esté corriendo). Luego corre `estado`:
+verás los mensajes acumándose en `pendientes` y drenándose a 0.
 
 ### 6.2 Apagón: la cola retiene el trabajo
 

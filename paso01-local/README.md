@@ -284,22 +284,25 @@ Qué verificar (misma tabla de verificación que en la nube):
    al instante aunque el procesamiento Java tarde. La cola amortigua el pico.
 
    ```powershell
-   # $url es la del Paso 4 (la crea .\scripts\init-aws.ps1 al final, o defínela:
+   # PowerShell
    $api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
    $url = "http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
 
    1..10 | ForEach-Object {
-     curl.exe -s -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json" | Out-Null
-     "solicitud $_ -> 202 Accepted"
+     $code = curl.exe -s -o NUL -w "%{http_code}" -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json"
+     "solicitud $_ -> HTTP $code"
    }
    ```
 
    En macOS/Linux:
 
    ```bash
+   api=$(docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
+   url="http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
+
    for i in $(seq 1 10); do
-     curl -s -X POST "$url" -H "Content-Type: application/json" -d @ejemplo-valido.json > /dev/null
-     echo "solicitud $i -> 202 Accepted"
+     code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$url" -H "Content-Type: application/json" -d @ejemplo-valido.json)
+     echo "solicitud $i -> HTTP $code"
    done
    ```
 
