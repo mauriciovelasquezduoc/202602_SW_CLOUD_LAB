@@ -305,12 +305,37 @@ Hola María Pérez Soto: Tu solicitud de tipo CERTIFICADO fue PROCESADA con éxi
 **Ojo con el *visibility timeout*:** SQS hace "invisible" cada mensaje ~30 s después de
 leerlo. Si `avisos` dice *bandeja vacía* justo después de procesar, espera 30 s y reintenta.
 
-**Logs de CloudWatch** (idénticos en las tres terminales — `docker exec` puro):
+**Logs de CloudWatch** — con el wrapper `logs` (sin argumento muestra las dos Lambdas;
+acepta `recepcion` o `procesamiento`):
 
 ```bash
-docker exec localstack awslocal logs tail /aws/lambda/recepcion --since 15m --format short
-docker exec localstack awslocal logs tail /aws/lambda/procesamiento --since 15m --format short
+# macOS / Linux
+./bin/logs.sh                 # las dos
+./bin/logs.sh recepcion       # solo recepción
 ```
+
+```powershell
+# PowerShell
+.\scripts\logs.ps1 recepcion   # o sin argumento: las dos
+```
+
+```bat
+:: CMD
+scripts\logs.bat recepcion     :: o sin argumento: las dos
+```
+
+Por dentro, el wrapper ejecuta la API real `filter-log-events` — ojo, `awslocal` usa el
+motor del CLI v1 y **no soporta `logs tail`** (eso es azúcar del AWS CLI v2):
+
+```bash
+docker exec localstack awslocal logs filter-log-events \
+  --log-group-name /aws/lambda/recepcion \
+  --query 'events[].message' --output text
+```
+
+**Qué se espera:** por cada invocación, un `START RequestId: ...`, el log del handler
+(p. ej. `Solicitud ... encolada en SQS` o `Procesando solicitud ...`) y un
+`REPORT RequestId: ... Duration: ...` con el tiempo y memoria consumida.
 
 ### Checklist de verificación (igual en local y en la nube)
 
@@ -446,6 +471,7 @@ código). **Declaran la misma arquitectura.**
 | Primera invocación tarda ~1 min | todas | Cold start de Java: se descarga la imagen `lambda/java:21` |
 | `avisos` dice "bandeja vacía" | todas | Visibility timeout de 30 s: espera y reintenta |
 | Ítem no aparece y la DLQ tiene mensajes | todas | El procesamiento falló 3 veces: mira los logs de `procesamiento` |
+| `aws: error: Invalid choice, valid choices are...` al pedir logs | todas | `awslocal` (CLI v1) no tiene `logs tail` (azúcar del CLI v2): usa el wrapper `logs` de tu sistema (Paso 5) o `logs filter-log-events` |
 | `The security token ... expired` (paso 02) | AWS | Credenciales del lab expiradas: re-exportar o usar Cloud9 |
 
 ---
