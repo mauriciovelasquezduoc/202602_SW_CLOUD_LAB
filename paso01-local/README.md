@@ -92,7 +92,7 @@ y **`.sh`** (macOS/Linux, en `bin/`). Elige según tu terminal; los tres hacen e
 | Prueba de punta a punta | `.\scripts\demo.ps1` | `scripts\demo.bat` | `./bin/demo.sh` |
 | Estado del sistema | `.\scripts\estado.ps1` | `scripts\estado.bat` | `./bin/estado.sh` |
 | Ver "el correo" (notificaciones) | `.\scripts\avisos.ps1` | `scripts\avisos.bat` | `./bin/avisos.sh` |
-| Logs de una Lambda | `docker exec localstack awslocal logs tail ...` | igual | igual |
+| Logs de una Lambda | `docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/recepcion --query 'events[].message' --output text` | igual | igual |
 | URL de la API (para Postman) | `$api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)` | `docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text` | `docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text` |
 | Apagar y borrar todo | `.\scripts\limpiar.ps1` | `scripts\limpiar.bat` | `./bin/limpiar.sh` |
 
@@ -230,9 +230,11 @@ curl.exe -i -X POST $url -H "Content-Type: application/json" -d "@ejemplo-invali
 # Las notificaciones ("el correo")
 .\scripts\avisos.ps1
 
-# Logs CloudWatch de cada Lambda
-docker exec localstack awslocal logs tail /aws/lambda/recepcion --since 15m --format short
-docker exec localstack awslocal logs tail /aws/lambda/procesamiento --since 15m --format short
+# Logs CloudWatch de cada Lambda.
+# OJO: awslocal usa el motor del CLI v1 y NO soporta "logs tail" (eso es azúcar
+# del CLI v2): se usa la API real filter-log-events.
+docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/recepcion --query 'events[].message' --output text
+docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/procesamiento --query 'events[].message' --output text
 ```
 
 En CMD: `scripts\estado.bat` y `scripts\avisos.bat` · En macOS/Linux: `./bin/estado.sh` y `./bin/avisos.sh` (los logs con `docker exec` son iguales).

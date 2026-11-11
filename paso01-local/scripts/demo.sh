@@ -53,4 +53,4 @@ done
 echo
 echo ">> Sigue pendiente. Es normal la PRIMERA vez (imagen de Java se descarga)."
 echo ">> Reintenta en 1 minuto:  ./bin/demo.sh  (mac/linux) | scripts\\demo.ps1  (Windows)"
-echo ">> Logs: docker exec localstack awslocal logs tail /aws/lambda/procesamiento --since 15m --format short"
+echo ">> Logs:  docker exec localstack awslocal logs filter-log-events --log-group-name /aws/lambda/procesamiento --query 'events[].message' --output text"
