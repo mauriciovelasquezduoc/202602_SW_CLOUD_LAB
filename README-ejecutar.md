@@ -354,24 +354,37 @@ docker exec localstack awslocal logs filter-log-events \
 
 ### 6.1 Picos de tráfico: la cola amortigua
 
-Envía 10 POST seguidos: todos responden `202` **al instante** aunque el procesamiento Java
-tarde. Esa es la gracia: la recepción no sufre lo que sufre el procesamiento. Cada bloque
-resuelve primero la URL (el id de la API se consulta con `docker exec`) y muestra el **código
-HTTP real** de cada envío — si algo fallara, verías el código, no una promesa.
+Envía N POST seguidos (10 por defecto) y muestra el **código HTTP real** de cada uno:
+todos responden `202` **al instante** aunque el procesamiento Java tarde. Esa es la gracia:
+la recepción no sufre lo que sufre el procesamiento. Al final muestra el estado de la cola,
+por si alcanzas a ver los mensajes en vuelo.
 
 ```powershell
 # PowerShell
-$api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
-$url = "http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
+.\scripts\picos.ps1          # 10 solicitudes
+.\scripts\picos.ps1 50       # 50 solicitudes
+```
 
-1..10 | ForEach-Object {
-  $code = curl.exe -s -o NUL -w "%{http_code}" -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json"
-  "solicitud $_ -> HTTP $code"
-}
+```bat
+:: CMD
+scripts\picos.bat
+scripts\picos.bat 50
 ```
 
 ```bash
 # macOS / Linux
+./bin/picos.sh
+./bin/picos.sh 50
+```
+
+**Qué se espera:** N líneas `solicitud i -> HTTP 202`, y al final la cola. Si corres
+`estado` justo después (o el pico es grande), verás mensajes acumados en `pendientes`
+drenándose a 0; si la Lambda está tibia, quizá solo veas `NotVisible` en 5: son los
+mensajes **en vuelo** (invisibles por el visibility timeout mientras se procesan).
+
+**Por dentro**, cada envío es la API real contra el endpoint resuelto con `docker exec`:
+
+```bash
 api=$(docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
 url="http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
 
@@ -381,9 +394,8 @@ for i in $(seq 1 10); do
 done
 ```
 
-**Qué se espera:** diez líneas `solicitud i -> HTTP 202`. Si saliera `HTTP 000`, curl no
-llegó al endpoint (revisa la URL o que LocalStack esté corriendo). Luego corre `estado`:
-verás los mensajes acumándose en `pendientes` y drenándose a 0.
+> Ejecuta los wrappers desde cualquier carpeta: se ubican solos. El `ejemplo-valido.json`
+> debe existir en `paso01-local/` (viene con el repo).
 
 ### 6.2 Apagón: la cola retiene el trabajo
 

@@ -280,31 +280,19 @@ Qué verificar (misma tabla de verificación que en la nube):
    # ... y repite los Pasos 3 y 4
    ```
 
-3. **Picos de tráfico.** Envía 10 POST seguidos con el cuerpo válido: todos responden `202`
-   al instante aunque el procesamiento Java tarde. La cola amortigua el pico.
+3. **Picos de tráfico.** Envía N POST seguidos (10 por defecto) y mira el código HTTP real
+   de cada uno: todos responden `202` al instante aunque el procesamiento Java tarde.
+   La cola amortigua el pico. Al final muestra el estado de la cola.
 
    ```powershell
    # PowerShell
-   $api = (docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
-   $url = "http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
-
-   1..10 | ForEach-Object {
-     $code = curl.exe -s -o NUL -w "%{http_code}" -X POST $url -H "Content-Type: application/json" -d "@ejemplo-valido.json"
-     "solicitud $_ -> HTTP $code"
-   }
+   .\scripts\picos.ps1        # 10; con 50: .\scripts\picos.ps1 50
    ```
 
-   En macOS/Linux:
+   En CMD: `scripts\picos.bat` · En macOS/Linux: `./bin/picos.sh`
 
-   ```bash
-   api=$(docker exec localstack awslocal apigateway get-rest-apis --query "items[0].id" --output text)
-   url="http://localhost:4566/restapis/$api/prod/_user_request_/solicitudes"
-
-   for i in $(seq 1 10); do
-     code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$url" -H "Content-Type: application/json" -d @ejemplo-valido.json)
-     echo "solicitud $i -> HTTP $code"
-   done
-   ```
+   Por dentro, cada envío es `curl` contra la URL resuelta con `docker exec`
+   (ver `scripts\picos.ps1`). El cuerpo válido lo toma de `ejemplo-valido.json`.
 
 ## Estructura del proyecto
 
@@ -323,8 +311,9 @@ paso01-local/
 │   ├── estado.ps1          PASO 5: estado de tabla, colas, DLQ y suscripciones
 │   ├── avisos.ps1          PASO 5: lee la bandeja simulada de notificaciones
 │   ├── logs.ps1            PASO 5: logs CloudWatch de una Lambda (o las dos)
+│   ├── picos.ps1           experimento: N POST seguidos (picos) + estado de la cola
 │   ├── limpiar.ps1         limpieza: borra contenedores, apaga y borra el estado
-│   ├── build.bat           los MISMOS seis pasos en versión CMD (sin PowerShell)
+│   ├── build.bat           los MISMOS pasos en versión CMD (sin PowerShell)
 │   ├── init-aws.bat
 │   ├── demo.bat
 │   ├── estado.bat
@@ -335,7 +324,7 @@ paso01-local/
 │   ├── build.sh            los MISMOS seis pasos para macOS/Linux (bash)
 │   ├── init-aws.sh
 │   ├── demo.sh
-│   ├── estado.sh           los MISMOS siete pasos para macOS/Linux (bash)
+│   ├── estado.sh           los MISMOS pasos para macOS/Linux (bash)
 │   ├── avisos.sh
 │   ├── logs.sh
 │   └── limpiar.sh
