@@ -2,15 +2,10 @@
 # ==================================================================
 # Paso 01 — prueba de punta a punta.
 #
-# Este script corre DENTRO del contenedor LocalStack (no en tu
-# computador). Desde PowerShell (Windows) lo ejecutas así:
-#   docker cp scripts/demo.sh localstack:/tmp/demo.sh
-#   docker exec localstack bash /tmp/demo.sh
-#
-# 1. POST /solicitudes contra el API Gateway que vive en LocalStack.
-# 2. Espera a que la Lambda de procesamiento concluya (cold start de
-#    la primera ejecución de Java puede tardar ~1 min) y verifica que
-#    el ítem quedó en DynamoDB con estado PROCESADA.
+# Normalmente NO lo ejecutas a mano: usa el wrapper de tu sistema,
+# que copia los scripts y lo ejecuta dentro del contenedor:
+#   macOS/Linux:      ./bin/demo.sh
+#   Windows (PS/CMD): scripts\demo.ps1  |  scripts\demo.bat
 # ==================================================================
 set -e
 
@@ -48,7 +43,7 @@ for i in $(seq 1 45); do
     awslocal dynamodb scan --table-name solicitudes \
       --query 'Items[].{id:solicitudId.S, tipo:tipo.S, estado:estado.S, alumno:nombreAlumno.S, email:emailAlumno.S, resultado:resultado.S, procesada:fechaProcesamiento.S}' \
       --output table
-    echo ">> El 'correo' de SNS:  docker exec localstack bash /tmp/avisos.sh"
+    echo ">> El 'correo' de SNS:  ./bin/avisos.sh  (mac/linux) | scripts\\avisos.ps1  (Windows)"
     exit 0
   fi
   printf "."
@@ -57,5 +52,5 @@ done
 
 echo
 echo ">> Sigue pendiente. Es normal la PRIMERA vez (imagen de Java se descarga)."
-echo ">> Reintenta en 1 minuto:  docker exec localstack bash /tmp/demo.sh"
+echo ">> Reintenta en 1 minuto:  ./bin/demo.sh  (mac/linux) | scripts\\demo.ps1  (Windows)"
 echo ">> Logs: docker exec localstack awslocal logs tail /aws/lambda/procesamiento --since 15m --format short"

@@ -16,5 +16,5 @@ if errorlevel 1 (
     exit /b 1
 )
 
-docker cp scripts/estado.sh localstack:/tmp/estado.sh
+docker cp scripts/. localstack:/tmp/ >nul
 docker exec localstack bash /tmp/estado.sh

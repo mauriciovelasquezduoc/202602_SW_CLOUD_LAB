@@ -2,11 +2,10 @@
 # ==================================================================
 # Paso 01 — crea TODA la arquitectura dentro del contenedor LocalStack.
 #
-# Este script NO corre en tu computador (Mac o Windows): lo ejecutas
-# DENTRO del contenedor LocalStack:
-#   docker cp out/lambdas.zip localstack:/tmp/lambdas.zip
-#   docker cp scripts/init-aws.sh localstack:/tmp/init-aws.sh
-#   docker exec -e EMAIL_NOTIFICATIONS=... localstack bash /tmp/init-aws.sh
+# Normalmente NO lo ejecutas a mano: usa el wrapper de tu sistema,
+# que copia los scripts y lo ejecuta dentro del contenedor:
+#   macOS/Linux:      ./bin/init-aws.sh tucorreo@duocuc.cl
+#   Windows (PS/CMD): scripts\init-aws.ps1 -Email ... | scripts\init-aws.bat ...
 #
 # Es IDEMPOTENTE: si algo ya existe lo reutiliza; si el zip cambió,
 # actualiza el código de las Lambdas. Total compatibilidad conceptual
@@ -47,7 +46,7 @@ if API_ID_PREVIO=$(awslocal apigateway get-rest-apis --query 'items[0].id' --out
            --notification-endpoint "arn:aws:sqs:${REGION}:${CUENTA}:notificaciones-bandeja" \
            --region "$REGION" > /dev/null || true
   fi
-  echo ">> Prueba directamente:  docker exec localstack bash /tmp/demo.sh"
+  echo ">> Prueba directamente:  ./bin/demo.sh  (mac/linux) | scripts\\demo.ps1  (Windows)"
   echo ">> O re-crea todo desde cero: docker compose down -v && docker compose up -d"
   echo ">>   y repite este paso (Paso 3 del README)."
   exit 0
@@ -160,7 +159,7 @@ awslocal apigateway create-deployment --rest-api-id "$API_ID" --stage-name prod 
 echo
 echo "============================================================"
 echo " Infraestructura local lista. Registra una solicitud con:"
-echo "   docker exec localstack bash /tmp/demo.sh"
+echo "   ./bin/demo.sh  (mac/linux) | scripts\\demo.ps1  (Windows)"
 echo " URL de la API:"
 echo "   http://localhost:4566/restapis/${API_ID}/prod/_user_request_/solicitudes"
 echo "============================================================"

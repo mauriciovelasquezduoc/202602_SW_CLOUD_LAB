@@ -27,6 +27,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-docker cp out/lambdas.zip localstack:/tmp/lambdas.zip
-docker cp scripts/init-aws.sh localstack:/tmp/init-aws.sh
+docker cp out/lambdas.zip localstack:/tmp/lambdas.zip >nul
+docker cp scripts/. localstack:/tmp/ >nul
 docker exec -e EMAIL_NOTIFICATIONS=%EMAIL% localstack bash /tmp/init-aws.sh

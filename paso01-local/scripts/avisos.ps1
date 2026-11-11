@@ -17,5 +17,5 @@ if (-not (docker ps --filter "name=^localstack$" --filter "status=running" | Sel
     exit 1
 }
 
-docker cp scripts/avisos.sh localstack:/tmp/avisos.sh | Out-Null
+docker cp scripts/. localstack:/tmp/ | Out-Null
 docker exec localstack bash /tmp/avisos.sh

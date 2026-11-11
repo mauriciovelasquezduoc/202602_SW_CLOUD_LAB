@@ -26,5 +26,5 @@ if (-not (docker ps --filter "name=^localstack$" --filter "status=running" | Sel
 }
 
 docker cp out/lambdas.zip localstack:/tmp/lambdas.zip | Out-Null
-docker cp scripts/init-aws.sh localstack:/tmp/init-aws.sh | Out-Null
+docker cp scripts/. localstack:/tmp/ | Out-Null
 docker exec -e EMAIL_NOTIFICATIONS=$Email localstack bash /tmp/init-aws.sh

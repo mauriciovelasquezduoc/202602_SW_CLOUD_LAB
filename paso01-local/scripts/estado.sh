@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # ==================================================================
-# Paso 01 — estado del sistema dentro de LocalStack.
-# Corre DENTRO del contenedor. Desde PowerShell (Windows):
-#   docker cp scripts/estado.sh localstack:/tmp/estado.sh
-#   docker exec localstack bash /tmp/estado.sh
+# PASO 01 — estado del sistema dentro de LocalStack.
+#
+# Normalmente NO lo ejecutas a mano: usa el wrapper de tu sistema:
+#   macOS/Linux:      ./bin/estado.sh
+#   Windows (PS/CMD): scripts\estado.ps1  |  scripts\estado.bat
 # ==================================================================
 NOMBRE_TABLA=solicitudes
 
@@ -36,4 +37,4 @@ awslocal sqs receive-message \
   --queue-url "http://localhost:4566/000000000000/notificaciones-bandeja" \
   --max-number-of-messages 5 \
   --query 'length(Messages)? 0 : length(Messages)' --output text 2>/dev/null || true
-echo "(lee las notificaciones con: docker exec localstack bash /tmp/avisos.sh)"
+echo "(lee las notificaciones con: ./bin/avisos.sh  (mac/linux) | scripts\\avisos.ps1  (Windows))"

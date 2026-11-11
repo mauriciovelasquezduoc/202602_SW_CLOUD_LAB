@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ==================================================================
-# Paso 01 — lee la "bandeja" simulada de notificaciones.
+# PASO 01 (Paso 5) - Lee la "bandeja" simulada de notificaciones.
 # En el paso 02 (nube real) estas notificaciones llegan por EMAIL.
 # Aquí se guardan en una cola SQS suscrita al tópico SNS.
 #
-# Corre DENTRO del contenedor. Desde PowerShell (Windows):
-#   docker cp scripts/avisos.sh localstack:/tmp/avisos.sh
-#   docker exec localstack bash /tmp/avisos.sh
+# Normalmente NO lo ejecutas a mano: usa el wrapper de tu sistema:
+#   macOS/Linux:      ./bin/avisos.sh
+#   Windows (PS/CMD): scripts\avisos.ps1  |  scripts\avisos.bat
 #
 # Nota: SQS hace "invisible" cada mensaje por ~30 s tras leerlo;
 # si acabas de leer la bandeja, espera 30 s y vuelve a intentar.

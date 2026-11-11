@@ -18,5 +18,5 @@ if errorlevel 1 (
     exit /b 1
 )
 
-docker cp scripts/demo.sh localstack:/tmp/demo.sh
+docker cp scripts/. localstack:/tmp/ >nul
 docker exec localstack bash /tmp/demo.sh

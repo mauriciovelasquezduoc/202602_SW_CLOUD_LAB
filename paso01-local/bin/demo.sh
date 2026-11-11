@@ -17,5 +17,5 @@ if ! docker ps --filter "name=^localstack$" --filter "status=running" | grep -q 
   exit 1
 fi
 
-docker cp scripts/demo.sh localstack:/tmp/demo.sh >/dev/null
+docker cp scripts/. localstack:/tmp/ >/dev/null
 docker exec localstack bash /tmp/demo.sh
