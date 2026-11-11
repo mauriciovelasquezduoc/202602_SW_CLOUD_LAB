@@ -251,6 +251,44 @@ curl.exe -i -X POST "http://localhost:4566/restapis/<api-id>/prod/_user_request_
 - El cuerpo válido está en `ejemplo-valido.json`; otros `tipo` válidos:
   `REVISION_NOTAS`, `SOPORTE_TECNICO`, `INFO_ACADEMICA` (descripción mínima 10 caracteres).
 
+### Montarlo en Postman (30 segundos, sin escribir nada a mano)
+
+Postman puede **importar un comando curl tal cual** y convertirlo en request. Reemplaza
+`<api-id>` por el id que imprime el Paso 3 (o el de arriba) y pega esto en Postman:
+
+```bash
+curl --location --request POST 'http://localhost:4566/restapis/<api-id>/prod/_user_request_/solicitudes' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "alumno": { "nombre": "María Pérez Soto", "email": "maria.perez@duocuc.cl" },
+    "tipo": "CERTIFICADO",
+    "descripcion": "Necesito certificado de notas para postular a una beca"
+  }'
+```
+
+Pasos: **Import → Raw text → pega el curl → Import**. Postman crea el `POST` con el header
+y el body ya cargados. Guárdalo en una colección (ej. *Solicitudes DUOC*) y:
+
+1. **Duplica el request** y cambia `tipo` para probar los 4 tipos (`CERTIFICADO`,
+   `REVISION_NOTAS`, `SOPORTE_TECNICO`, `INFO_ACADEMICA`) — cada uno responde `202` y en
+   `avisos` verás su `resultado` distinto.
+2. **Crea una variante inválida** (nombre "Ana", email "no-valido", tipo "PRESTAMO_LIBROS")
+   — debe responder `400` con el detalle. Así tienes la prueba positiva y negativa del RF2
+   en la colección.
+3. **Tests automáticos en Postman** (pestaña *Tests* del request): 
+   `pm.test("aceptada para procesar", () => pm.response.to.have.status(202));` — la colección
+   queda lista para correr con *Run collection*.
+
+### ¿Y el correo? Local es simulado; en la nube llega de verdad
+
+| Dónde | Qué pasa con el "correo" |
+|---|---|
+| **Paso 01 (local)** | LocalStack community **no envía email real** (no hay SMTP). La suscripción email que creó `init-aws` queda "pendiente de confirmación" para siempre: es normal. El correo **se simula**: SNS entrega a la cola `notificaciones-bandeja` y se lee con `avisos` (`./bin/avisos.sh` · `scripts\avisos.ps1` · `scripts\avisos.bat`). Mismo contenido que el email real |
+| **Paso 02 (nube real)** | SNS **sí envía el correo de verdad** a la casilla que declaraste en `sam deploy`. Único requisito: **confirmar la suscripción** — llega un mail "AWS Notification - Subscription Confirmation" y hay que hacer clic en *Confirm subscription*. Sin ese clic, no llega NINGÚN correo (causa #1 de "no me llegó el email" en el lab) |
+
+En la demo de clase: en local muestra `avisos` (el correo del lab), y en la nube el buzón
+real del alumno. Mismo flujo SNS, dos entregas.
+
 ### Prueba negativa (RF2)
 
 ```powershell

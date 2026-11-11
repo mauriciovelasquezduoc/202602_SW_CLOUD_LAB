@@ -200,6 +200,16 @@ Envía un `POST /solicitudes` válido y **verás la clave del patrón asíncrono
 }
 ```
 
+   Para crear el request sin escribir nada a mano: en Postman, **Import → Raw text** y pega
+   este curl (reemplaza `<api-id>` por el id que imprime el Paso 3); Postman arma el POST
+   con header y body listos:
+
+   ```bash
+   curl --location --request POST 'http://localhost:4566/restapis/<api-id>/prod/_user_request_/solicitudes' \
+     --header 'Content-Type: application/json' \
+     --data-raw '{"alumno": {"nombre": "María Pérez Soto", "email": "maria.perez@duocuc.cl"}, "tipo": "CERTIFICADO", "descripcion": "Necesito certificado de notas para postular a una beca"}'
+   ```
+
 Otros `tipo` válidos con su `descripcion` (mínimo 10 caracteres):
 
 | `tipo` | `descripcion` de ejemplo |
